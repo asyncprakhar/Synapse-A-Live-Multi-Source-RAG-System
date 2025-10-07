@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knowledge Base Chatbot</title>
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover: #0056b3;
+            --background-color: #f7f9fc;
+            --container-bg: #ffffff;
+            --user-message-bg: #007bff;
+            --bot-message-bg: #f1f3f5;
+            --border-color: #dee2e6;
+            --text-color: #212529;
+            --subtle-text: #6c757d;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-color);
+        }
+
+        #chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background-color: var(--container-bg);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #chat-box {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            max-width: 85%;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background-color: var(--user-message-bg);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+            border-radius: 20px 20px 4px 20px;
+            padding: 12px 18px;
+        }
+
+        .bot-message {
+            background-color: var(--bot-message-bg);
+            color: var(--text-color);
+            align-self: flex-start;
+            border: 1px solid var(--border-color);
+            border-radius: 20px 20px 20px 4px;
+            padding: 15px 20px;
+            width: fit-content;
+        }
+
+        /* --- Beautiful Markdown Styling --- */
+        .message-content * {
+             margin: 0;
+        }
+        
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin-bottom: 1rem;
+            margin-top: 1.5rem;
+            font-weight: 600;
+            line-height: 1.25;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+        }
+        .message-content h2 { font-size: 1.25em; }
+        .message-content h3 { font-size: 1.1em; }
+        .message-content p { margin-bottom: 1rem; line-height: 1.6; }
+        .message-content ul, .message-content ol { padding-left: 20px; margin-bottom: 1rem; }
+        .message-content li { margin-bottom: 0.5rem; }
+        .message-content a { color: var(--primary-color); text-decoration: none; }
+        .message-content a:hover { text-decoration: underline; }
+        .message-content blockquote {
+            padding: 0 1em;
+            color: var(--subtle-text);
+            border-left: 0.25em solid var(--border-color);
+            margin: 0 0 1rem 0;
+        }
+        .message-content code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            background-color: rgba(27, 31, 35, 0.07);
+            border-radius: 6px;
+            font-size: 85%;
+            padding: .2em .4em;
+        }
+        .message-content pre {
+            position: relative; /* For copy button positioning */
+            background-color: #282c34; /* Atom One Dark background */
+            border-radius: 8px;
+            font-size: 85%;
+            line-height: 1.45;
+            overflow: auto;
+            padding: 16px;
+            margin-bottom: 1rem;
+        }
+        .message-content pre > code {
+            background: none;
+            padding: 0;
+            color: #abb2bf; /* Atom One Dark text */
+        }
+        .copy-code-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #444c56;
+            color: #adbac7;
+            border: 1px solid #545d68;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .message-content pre:hover .copy-code-btn {
+            opacity: 1;
+        }
+        .copy-code-btn:hover {
+            background-color: #545d68;
+        }
+        .copy-code-btn.copied {
+            background-color: #2ea043;
+            color: white;
+        }
+
+
+        #input-form {
+            padding: 24px;
+        }
+        
+        #api-key-input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        #api-key-input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #question-input {
+            flex-grow: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        #question-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+        #question-input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        #submit-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.15s;
+        }
+        #submit-btn:hover:not(:disabled) { background-color: var(--primary-hover); }
+        #submit-btn:disabled { background-color: var(--subtle-text); cursor: not-allowed; }
+        
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            margin: 0 2px;
+            background-color: var(--subtle-text);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-box">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <p>Hello! To get started, please enter your API Key below. I'm ready to help you with your knowledge base.</p>
+                </div>
+            </div>
+        </div>
+        <form id="input-form">
+            <input type="password" id="api-key-input" placeholder="Enter your API Key..." autocomplete="current-password" />
+            <div class="input-row">
+                <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off" disabled />
+                <button id="submit-btn" type="submit" disabled>Send</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById("input-form");
+        const apiKeyInput = document.getElementById("api-key-input");
+        const questionInput = document.getElementById("question-input");
+        const chatBox = document.getElementById("chat-box");
+        const submitBtn = document.getElementById("submit-btn");
+        const API_URL = "http://localhost:3001/api/chat";
+
+        // Configure marked.js to use highlight.js for code blocks
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            }
+        });
+
+        // --- IMPROVEMENT: API Key Management & UI State ---
+        function initializeUIState() {
+            const savedApiKey = localStorage.getItem("apiKey");
+            if (savedApiKey) {
+                apiKeyInput.value = savedApiKey;
+                questionInput.disabled = false;
+                submitBtn.disabled = false;
+                questionInput.placeholder = "Ask anything about your knowledge base...";
+                questionInput.focus();
+            } else {
+                questionInput.placeholder = "Please enter your API key first.";
+                apiKeyInput.focus();
+            }
+        }
+
+        apiKeyInput.addEventListener("input", () => {
+            const apiKey = apiKeyInput.value.trim();
+            if (apiKey) {
+                localStorage.setItem("apiKey", apiKey);
+                questionInput.disabled = false;
+                submitBtn.disabled = false;
+                questionInput.placeholder = "Ask anything about your knowledge base...";
+            } else {
+                localStorage.removeItem("apiKey");
+                questionInput.disabled = true;
+                submitBtn.disabled = true;
+                questionInput.placeholder = "Please enter your API key first.";
+            }
+        });
+        
+        window.addEventListener('load', initializeUIState);
+
+        // --- Form Submission Handler ---
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const question = questionInput.value.trim();
+            const apiKey = apiKeyInput.value.trim();
+            if (!question || !apiKey) return;
+
+            appendMessage(question, "user");
+            questionInput.value = "";
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Thinking...";
+
+            const botMessageDiv = createBotMessage();
+            let fullResponse = "";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-api-key": apiKey,
+                    },
+                    body: JSON.stringify({ question }),
+                });
+
+                if (response.status === 401) throw new Error("Unauthorized: Invalid API Key.");
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let isFirstToken = true;
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n");
+
+                    for (const line of lines) {
+                        if (line.startsWith("data:")) {
+                            const data = JSON.parse(line.substring(5));
+                            if (data.token) {
+                                if (isFirstToken) {
+                                    botMessageDiv.innerHTML = ""; // Clear typing indicator
+                                    isFirstToken = false;
+                                }
+                                fullResponse += data.token;
+                                botMessageDiv.innerHTML = marked.parse(fullResponse);
+                            }
+                        }
+                    }
+                }
+                // --- IMPROVEMENT: Add copy buttons after the full response is rendered ---
+                addCopyButtons(botMessageDiv);
+
+            } catch (error) {
+                botMessageDiv.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Send";
+                questionInput.focus();
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        });
+
+        function appendMessage(text, type) {
+            const messageWrapper = document.createElement("div");
+            messageWrapper.className = `message ${type}-message`;
+            messageWrapper.innerHTML = type === 'user' ? text : '';
+            chatBox.appendChild(messageWrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return messageWrapper;
+        }
+
+        function createBotMessage() {
+            const messageWrapper = appendMessage('', 'bot');
+            const contentDiv = document.createElement("div");
+            contentDiv.className = "message-content";
+            contentDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            messageWrapper.appendChild(contentDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return contentDiv;
+        }
+        
+        // --- IMPROVEMENT: "Copy Code" button functionality ---
+        function addCopyButtons(container) {
+            const codeBlocks = container.querySelectorAll('pre');
+            codeBlocks.forEach(block => {
+                const button = document.createElement('button');
+                button.className = 'copy-code-btn';
+                button.textContent = 'Copy';
+                
+                button.addEventListener('click', () => {
+                    const code = block.querySelector('code').innerText;
+                    navigator.clipboard.writeText(code).then(() => {
+                        button.textContent = 'Copied!';
+                        button.classList.add('copied');
+                        setTimeout(() => {
+                            button.textContent = 'Copy';
+                            button.classList.remove('copied');
+                        }, 2000);
+                    });
+                });
+                
+                block.appendChild(button);
+            });
+        }
+    </script>
+</body>
+</html>
