@@ -1,9 +1,10 @@
 // config.js
 export const config = {
-  pineconeIndex: "rag", // Choose a name for your Pinecone index
-  pineconeHost: "https://rag-cp3mwrj.svc.aped-4627-b74a.pinecone.io",
-  pineconeNamespace: "__default__",
+  pineconeIndex: "<your_pinecone_index_name>",
+  pineconeHost: "<your_host_name>",
+  pineconeNamespace: "<your_pinecone_Namespace>",
   githubRepos: [
     "Organisation_name/repository_name"
   ],
 };
+
