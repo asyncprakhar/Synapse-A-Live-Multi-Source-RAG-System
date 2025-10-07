@@ -9,7 +9,7 @@ export async function pageLoader() {
     clientOptions: {
       auth: process.env.NOTION_TOKEN,
     },
-    id: "18a3ac746cc980489912ca3f84736655",
+    id: "<central_page_id_here>",
     type: "page",
   });
   const pageDocs = await pageLoader.load();
@@ -56,3 +56,4 @@ export async function pageLoader() {
 // const dbDocs = await dbLoader.load();
 
 // console.log({ dbDocs });
+
